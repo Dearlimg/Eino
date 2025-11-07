@@ -24,6 +24,10 @@ func RegisterRoutes(router *gin.Engine, chatService *agent.ChatService) {
 		// 对话接口
 		api.POST("/chatbots/:id/chat", chat(chatService))
 		api.GET("/chatbots/:id/history", getHistory(chatService))
+
+		// RAG知识库接口（如果启用）
+		api.POST("/knowledge", addKnowledge(chatService))
+		api.GET("/knowledge/search", searchKnowledge(chatService))
 	}
 
 	// 健康检查
@@ -179,4 +183,40 @@ func healthCheck(c *gin.Context) {
 		"status":  "ok",
 		"service": "eino-chatbot",
 	})
+}
+
+// addKnowledge 添加知识到向量库
+func addKnowledge(service *agent.ChatService) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		var req struct {
+			Content string `json:"content" binding:"required"`
+		}
+		if err := c.ShouldBindJSON(&req); err != nil {
+			c.JSON(http.StatusBadRequest, model.ErrorResponse{
+				Error:   "invalid_request",
+				Message: err.Error(),
+			})
+			return
+		}
+
+		// TODO: 实现添加知识功能
+		c.JSON(http.StatusOK, gin.H{"message": "knowledge added"})
+	}
+}
+
+// searchKnowledge 搜索知识
+func searchKnowledge(service *agent.ChatService) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		query := c.Query("q")
+		if query == "" {
+			c.JSON(http.StatusBadRequest, model.ErrorResponse{
+				Error:   "invalid_request",
+				Message: "query parameter 'q' is required",
+			})
+			return
+		}
+
+		// TODO: 实现搜索知识功能
+		c.JSON(http.StatusOK, gin.H{"results": []string{}})
+	}
 }

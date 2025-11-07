@@ -34,3 +34,8 @@ storage:
     host: "47.118.19.28"
     port: 19530
 
+rag:
+  enabled: false  # 是否启用RAG功能
+  ollama_url: "http://localhost:11434"
+  embedding_model: "nomic-embed-text"
+

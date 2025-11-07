@@ -14,6 +14,7 @@ type Config struct {
 	Model   ModelConfig   `yaml:"model"`
 	Agent   AgentConfig   `yaml:"agent"`
 	Storage StorageConfig `yaml:"storage"`
+	RAG     RAGConfig     `yaml:"rag"`
 }
 
 // ServerConfig 服务器配置
@@ -70,6 +71,13 @@ type RedisConfig struct {
 type MilvusConfig struct {
 	Host string `yaml:"host"`
 	Port int    `yaml:"port"`
+}
+
+// RAGConfig RAG配置
+type RAGConfig struct {
+	Enabled        bool   `yaml:"enabled"`
+	OllamaURL      string `yaml:"ollama_url"`
+	EmbeddingModel string `yaml:"embedding_model"`
 }
 
 // Load 加载配置文件

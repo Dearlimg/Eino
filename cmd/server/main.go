@@ -12,6 +12,7 @@ import (
 	"eino/internal/agent"
 	"eino/internal/config"
 	"eino/internal/handler"
+	"eino/internal/service"
 	"eino/internal/storage"
 
 	"github.com/gin-gonic/gin"
@@ -35,6 +36,21 @@ func main() {
 	chatService, err := agent.NewChatService(cfg, storageService)
 	if err != nil {
 		log.Fatalf("Failed to initialize chat service: %v", err)
+	}
+
+	// 初始化RAG服务（如果启用）
+	if cfg.RAG.Enabled {
+		ragService, err := service.NewRAGService(
+			cfg.Storage.Milvus.Host,
+			cfg.Storage.Milvus.Port,
+			cfg.RAG.OllamaURL,
+		)
+		if err != nil {
+			log.Printf("Warning: Failed to initialize RAG service: %v", err)
+		} else {
+			chatService.SetRAGService(ragService)
+			log.Println("RAG service enabled")
+		}
 	}
 
 	// 初始化HTTP处理器

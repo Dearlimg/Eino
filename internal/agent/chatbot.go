@@ -19,9 +19,12 @@ import (
 
 // ChatService 聊天服务
 type ChatService struct {
-	model   *ollama.ChatModel
-	config  *config.Config
-	storage storage.Storage
+	model      *ollama.ChatModel
+	config     *config.Config
+	storage    storage.Storage
+	ragService interface { // RAG服务接口（可选）
+		EnhanceMessages(ctx context.Context, userMessage string, messages []*schema.Message) ([]*schema.Message, error)
+	}
 }
 
 // NewChatService 创建聊天服务
@@ -45,10 +48,18 @@ func NewChatService(cfg *config.Config, storage storage.Storage) (*ChatService, 
 	}
 
 	return &ChatService{
-		model:   chatModel,
-		config:  cfg,
-		storage: storage,
+		model:      chatModel,
+		config:     cfg,
+		storage:    storage,
+		ragService: nil, // 可选，通过SetRAGService设置
 	}, nil
+}
+
+// SetRAGService 设置RAG服务（可选）
+func (s *ChatService) SetRAGService(ragService interface {
+	EnhanceMessages(ctx context.Context, userMessage string, messages []*schema.Message) ([]*schema.Message, error)
+}) {
+	s.ragService = ragService
 }
 
 // CreateChatbot 创建聊天机器人实例
@@ -90,6 +101,14 @@ func (s *ChatService) Chat(ctx context.Context, chatbotID string, userMessage st
 
 	// 构建消息列表
 	messages := s.buildMessages(chatbot.SystemPrompt, history, userMessage)
+
+	// RAG增强（如果启用）
+	if s.ragService != nil {
+		enhanced, err := s.ragService.EnhanceMessages(ctx, userMessage, messages)
+		if err == nil && len(enhanced) > 0 {
+			messages = enhanced
+		}
+	}
 
 	// 设置超时上下文
 	modelCtx, cancel := context.WithTimeout(ctx, s.config.GetModelTimeout())
