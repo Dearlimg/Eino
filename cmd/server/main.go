@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"syscall"
 	"time"
 
@@ -20,7 +21,13 @@ import (
 
 func main() {
 	// 加载配置
-	cfg, err := config.Load("configs/config.yaml")
+	// 支持从环境变量或命令行参数获取配置路径
+	configPath := os.Getenv("CONFIG_PATH")
+	if configPath == "" {
+		configPath = "configs/config.yaml"
+	}
+
+	cfg, err := config.Load(configPath)
 	if err != nil {
 		log.Fatalf("Failed to load config: %v", err)
 	}
@@ -55,7 +62,45 @@ func main() {
 
 	// 初始化HTTP处理器
 	router := gin.Default()
+
+	// 静态文件服务（前端页面）
+	// 查找web目录，支持多种运行方式
+	workDir, _ := os.Getwd()
+	var webDir string
+
+	// 尝试多个可能的路径
+	possiblePaths := []string{
+		filepath.Join(workDir, "web"),
+		filepath.Join(workDir, "..", "web"),
+		filepath.Join(workDir, "..", "..", "web"),
+		filepath.Join(workDir, "..", "..", "..", "web"),
+	}
+
+	for _, path := range possiblePaths {
+		absPath, _ := filepath.Abs(path)
+		indexPath := filepath.Join(absPath, "index.html")
+		if _, err := os.Stat(indexPath); err == nil {
+			webDir = absPath
+			log.Printf("Found web directory at: %s", webDir)
+			break
+		}
+	}
+
+	// 注册API路由（先注册，避免被静态文件路由拦截）
 	handler.RegisterRoutes(router, chatService)
+
+	if webDir == "" {
+		log.Printf("Warning: web directory not found, static files will not be served")
+		log.Printf("Searched in: %v", possiblePaths)
+	} else {
+		// 注册静态文件路由
+		router.Static("/web", webDir)
+		// 根路径返回index.html
+		router.GET("/", func(c *gin.Context) {
+			c.File(filepath.Join(webDir, "index.html"))
+		})
+		log.Printf("Static files served from: %s", webDir)
+	}
 
 	// 启动HTTP服务器
 	srv := &http.Server{

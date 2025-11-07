@@ -1,0 +1,599 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Eino 智能聊天机器人</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+            display: flex;
+            height: calc(100vh - 40px);
+        }
+
+        .sidebar {
+            width: 300px;
+            background: #f8f9fa;
+            border-right: 1px solid #e9ecef;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .sidebar-header {
+            padding: 20px;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .sidebar-header h2 {
+            color: #333;
+            font-size: 20px;
+            margin-bottom: 10px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+            width: 100%;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        .chatbot-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 10px;
+        }
+
+        .chatbot-item {
+            padding: 15px;
+            margin-bottom: 10px;
+            background: white;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+            border: 2px solid transparent;
+        }
+
+        .chatbot-item:hover {
+            border-color: #667eea;
+            transform: translateX(5px);
+        }
+
+        .chatbot-item.active {
+            border-color: #667eea;
+            background: #f0f4ff;
+        }
+
+        .chatbot-name {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 5px;
+        }
+
+        .chatbot-desc {
+            font-size: 12px;
+            color: #666;
+        }
+
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .chat-header {
+            padding: 20px;
+            border-bottom: 1px solid #e9ecef;
+            background: white;
+        }
+
+        .chat-header h3 {
+            color: #333;
+            margin-bottom: 5px;
+        }
+
+        .chat-header p {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            background: #f8f9fa;
+        }
+
+        .message {
+            margin-bottom: 20px;
+            display: flex;
+            animation: fadeIn 0.3s;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .message.user {
+            justify-content: flex-end;
+        }
+
+        .message-content {
+            max-width: 70%;
+            padding: 12px 16px;
+            border-radius: 18px;
+            word-wrap: break-word;
+        }
+
+        .message.user .message-content {
+            background: #667eea;
+            color: white;
+            border-bottom-right-radius: 4px;
+        }
+
+        .message.bot .message-content {
+            background: white;
+            color: #333;
+            border-bottom-left-radius: 4px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .chat-input {
+            padding: 20px;
+            border-top: 1px solid #e9ecef;
+            background: white;
+        }
+
+        .input-group {
+            display: flex;
+            gap: 10px;
+        }
+
+        .input-group input {
+            flex: 1;
+            padding: 12px 16px;
+            border: 2px solid #e9ecef;
+            border-radius: 25px;
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+
+        .input-group input:focus {
+            border-color: #667eea;
+        }
+
+        .input-group button {
+            padding: 12px 24px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+
+        .input-group button:hover {
+            background: #5568d3;
+            transform: scale(1.05);
+        }
+
+        .input-group button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 20px;
+            width: 90%;
+            max-width: 500px;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            margin-bottom: 20px;
+        }
+
+        .modal-header h3 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 500;
+        }
+
+        .form-group input,
+        .form-group textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+
+        .form-group input:focus,
+        .form-group textarea:focus {
+            border-color: #667eea;
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #999;
+        }
+
+        .empty-state svg {
+            width: 100px;
+            height: 100px;
+            margin-bottom: 20px;
+            opacity: 0.5;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- 侧边栏 -->
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <h2>🤖 聊天机器人</h2>
+                <button class="btn btn-primary" onclick="openCreateModal()">+ 创建新机器人</button>
+            </div>
+            <div class="chatbot-list" id="chatbotList">
+                <div class="empty-state">
+                    <p>暂无聊天机器人</p>
+                    <p style="font-size: 12px; margin-top: 10px;">点击上方按钮创建</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- 主内容区 -->
+        <div class="main-content">
+            <div class="chat-header" id="chatHeader">
+                <h3>选择一个聊天机器人开始对话</h3>
+                <p>从左侧列表中选择或创建一个新的聊天机器人</p>
+            </div>
+            <div class="chat-messages" id="chatMessages">
+                <div class="empty-state">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                    </svg>
+                    <p>选择一个聊天机器人开始对话</p>
+                </div>
+            </div>
+            <div class="chat-input" id="chatInput" style="display: none;">
+                <div class="input-group">
+                    <input type="text" id="messageInput" placeholder="输入消息..." onkeypress="handleKeyPress(event)">
+                    <button id="sendButton" onclick="sendMessage()">发送</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 创建机器人模态框 -->
+    <div class="modal" id="createModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>创建新聊天机器人</h3>
+            </div>
+            <form id="createForm">
+                <div class="form-group">
+                    <label>名称 *</label>
+                    <input type="text" id="chatbotName" required placeholder="例如：技术助手">
+                </div>
+                <div class="form-group">
+                    <label>性格设定 *</label>
+                    <textarea id="chatbotPersonality" required placeholder="例如：你是一个专业、严谨、乐于助人的技术顾问。说话简洁明了，喜欢用代码示例说明问题。"></textarea>
+                </div>
+                <div class="form-group">
+                    <label>背景设定 *</label>
+                    <textarea id="chatbotBackground" required placeholder="例如：你是一位拥有10年经验的Go语言开发工程师，精通分布式系统、微服务架构和云原生技术。"></textarea>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeCreateModal()">取消</button>
+                    <button type="submit" class="btn btn-primary">创建</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:8080/api/v1';
+        let currentChatbotId = null;
+
+        // 页面加载时获取聊天机器人列表
+        window.onload = () => {
+            loadChatbots();
+        };
+
+        // 加载聊天机器人列表
+        async function loadChatbots() {
+            try {
+                const response = await fetch(`${API_BASE}/chatbots`);
+                const chatbots = await response.json();
+                renderChatbotList(chatbots);
+            } catch (error) {
+                console.error('加载聊天机器人列表失败:', error);
+            }
+        }
+
+        // 渲染聊天机器人列表
+        function renderChatbotList(chatbots) {
+            const list = document.getElementById('chatbotList');
+            if (chatbots.length === 0) {
+                list.innerHTML = `
+                    <div class="empty-state">
+                        <p>暂无聊天机器人</p>
+                        <p style="font-size: 12px; margin-top: 10px;">点击上方按钮创建</p>
+                    </div>
+                `;
+                return;
+            }
+
+            list.innerHTML = chatbots.map(chatbot => `
+                <div class="chatbot-item ${chatbot.id === currentChatbotId ? 'active' : ''}" 
+                     onclick="selectChatbot('${chatbot.id}', '${chatbot.name}')">
+                    <div class="chatbot-name">${escapeHtml(chatbot.name)}</div>
+                    <div class="chatbot-desc">${escapeHtml(chatbot.personality.substring(0, 50))}...</div>
+                </div>
+            `).join('');
+        }
+
+        // 选择聊天机器人
+        async function selectChatbot(id, name) {
+            currentChatbotId = id;
+            document.getElementById('chatHeader').innerHTML = `
+                <h3>${escapeHtml(name)}</h3>
+                <p>开始与 ${escapeHtml(name)} 对话</p>
+            `;
+            document.getElementById('chatInput').style.display = 'block';
+            document.getElementById('chatMessages').innerHTML = '';
+            
+            // 加载对话历史
+            try {
+                const response = await fetch(`${API_BASE}/chatbots/${id}/history?limit=20`);
+                const history = await response.json();
+                if (history.length > 0) {
+                    history.forEach(conv => {
+                        addMessage(conv.user_message, 'user');
+                        addMessage(conv.bot_message, 'bot');
+                    });
+                }
+            } catch (error) {
+                console.error('加载对话历史失败:', error);
+            }
+
+            // 更新列表高亮
+            loadChatbots();
+        }
+
+        // 发送消息
+        async function sendMessage() {
+            if (!currentChatbotId) {
+                alert('请先选择一个聊天机器人');
+                return;
+            }
+
+            const input = document.getElementById('messageInput');
+            const message = input.value.trim();
+            if (!message) return;
+
+            // 显示用户消息
+            addMessage(message, 'user');
+            input.value = '';
+
+            // 禁用发送按钮
+            const sendButton = document.getElementById('sendButton');
+            sendButton.disabled = true;
+            sendButton.innerHTML = '<span class="loading"></span>';
+
+            try {
+                const response = await fetch(`${API_BASE}/chatbots/${currentChatbotId}/chat`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ message: message })
+                });
+
+                const data = await response.json();
+                if (response.ok) {
+                    addMessage(data.message, 'bot');
+                } else {
+                    addMessage('抱歉，发生了错误：' + (data.message || data.error), 'bot');
+                }
+            } catch (error) {
+                addMessage('抱歉，网络错误：' + error.message, 'bot');
+            } finally {
+                sendButton.disabled = false;
+                sendButton.innerHTML = '发送';
+            }
+        }
+
+        // 添加消息到聊天界面
+        function addMessage(content, type) {
+            const messages = document.getElementById('chatMessages');
+            if (messages.querySelector('.empty-state')) {
+                messages.innerHTML = '';
+            }
+
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${type}`;
+            messageDiv.innerHTML = `
+                <div class="message-content">${escapeHtml(content).replace(/\n/g, '<br>')}</div>
+            `;
+            messages.appendChild(messageDiv);
+            messages.scrollTop = messages.scrollHeight;
+        }
+
+        // 打开创建模态框
+        function openCreateModal() {
+            document.getElementById('createModal').classList.add('active');
+        }
+
+        // 关闭创建模态框
+        function closeCreateModal() {
+            document.getElementById('createModal').classList.remove('active');
+            document.getElementById('createForm').reset();
+        }
+
+        // 处理创建表单提交
+        document.getElementById('createForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const name = document.getElementById('chatbotName').value;
+            const personality = document.getElementById('chatbotPersonality').value;
+            const background = document.getElementById('chatbotBackground').value;
+
+            try {
+                const response = await fetch(`${API_BASE}/chatbots`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ name, personality, background })
+                });
+
+                if (response.ok) {
+                    const chatbot = await response.json();
+                    closeCreateModal();
+                    loadChatbots();
+                    selectChatbot(chatbot.id, chatbot.name);
+                } else {
+                    const error = await response.json();
+                    alert('创建失败：' + (error.message || error.error));
+                }
+            } catch (error) {
+                alert('创建失败：' + error.message);
+            }
+        });
+
+        // 处理回车键发送
+        function handleKeyPress(event) {
+            if (event.key === 'Enter' && !event.shiftKey) {
+                event.preventDefault();
+                sendMessage();
+            }
+        }
+
+        // HTML转义
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // 点击模态框外部关闭
+        document.getElementById('createModal').addEventListener('click', (e) => {
+            if (e.target.id === 'createModal') {
+                closeCreateModal();
+            }
+        });
+    </script>
+</body>
+</html>
+

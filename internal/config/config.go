@@ -3,6 +3,7 @@ package config
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"time"
 
 	"gopkg.in/yaml.v3"
@@ -82,6 +83,47 @@ type RAGConfig struct {
 
 // Load 加载配置文件
 func Load(path string) (*Config, error) {
+	// 如果路径是相对路径，尝试从多个位置查找
+	if !filepath.IsAbs(path) {
+		// 获取当前工作目录
+		wd, err := os.Getwd()
+		if err == nil {
+			// 从当前工作目录向上查找配置文件
+			currentDir := wd
+			maxDepth := 5 // 最多向上查找5层
+
+			for i := 0; i < maxDepth; i++ {
+				testPath := filepath.Join(currentDir, path)
+				if _, err := os.Stat(testPath); err == nil {
+					path = testPath
+					break
+				}
+				// 向上查找
+				parent := filepath.Dir(currentDir)
+				if parent == currentDir {
+					break // 已到达根目录
+				}
+				currentDir = parent
+			}
+		}
+
+		// 如果还没找到，尝试可执行文件目录
+		execPath, err := os.Executable()
+		if err == nil {
+			execDir := filepath.Dir(execPath)
+			testPath := filepath.Join(execDir, path)
+			if _, err := os.Stat(testPath); err == nil {
+				path = testPath
+			} else {
+				// 尝试可执行文件目录的上级
+				testPath = filepath.Join(execDir, "..", path)
+				if _, err := os.Stat(testPath); err == nil {
+					path = testPath
+				}
+			}
+		}
+	}
+
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return nil, fmt.Errorf("read config file: %w", err)
