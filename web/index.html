@@ -321,6 +321,50 @@
             100% { transform: rotate(360deg); }
         }
 
+        .thinking-indicator {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: #999;
+            font-style: italic;
+        }
+
+        .thinking-dots {
+            display: flex;
+            gap: 4px;
+        }
+
+        .thinking-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: #667eea;
+            animation: thinkingPulse 1.4s ease-in-out infinite;
+        }
+
+        .thinking-dot:nth-child(1) {
+            animation-delay: 0s;
+        }
+
+        .thinking-dot:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+
+        .thinking-dot:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+
+        @keyframes thinkingPulse {
+            0%, 60%, 100% {
+                opacity: 0.3;
+                transform: scale(0.8);
+            }
+            30% {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
         .empty-state {
             text-align: center;
             padding: 60px 20px;
@@ -491,6 +535,9 @@
             sendButton.disabled = true;
             sendButton.innerHTML = '<span class="loading"></span>';
 
+            // 显示"思考中..."提示
+            const thinkingMessageId = addThinkingMessage();
+
             try {
                 const response = await fetch(`${API_BASE}/chatbots/${currentChatbotId}/chat`, {
                     method: 'POST',
@@ -501,12 +548,18 @@
                 });
 
                 const data = await response.json();
+                
+                // 移除"思考中..."提示
+                removeMessage(thinkingMessageId);
+                
                 if (response.ok) {
                     addMessage(data.message, 'bot');
                 } else {
                     addMessage('抱歉，发生了错误：' + (data.message || data.error), 'bot');
                 }
             } catch (error) {
+                // 移除"思考中..."提示
+                removeMessage(thinkingMessageId);
                 addMessage('抱歉，网络错误：' + error.message, 'bot');
             } finally {
                 sendButton.disabled = false;
@@ -523,11 +576,50 @@
 
             const messageDiv = document.createElement('div');
             messageDiv.className = `message ${type}`;
+            const messageId = 'msg-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
+            messageDiv.id = messageId;
             messageDiv.innerHTML = `
                 <div class="message-content">${escapeHtml(content).replace(/\n/g, '<br>')}</div>
             `;
             messages.appendChild(messageDiv);
             messages.scrollTop = messages.scrollHeight;
+            return messageId;
+        }
+
+        // 添加"思考中..."提示消息
+        function addThinkingMessage() {
+            const messages = document.getElementById('chatMessages');
+            if (messages.querySelector('.empty-state')) {
+                messages.innerHTML = '';
+            }
+
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message bot';
+            const messageId = 'thinking-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
+            messageDiv.id = messageId;
+            messageDiv.innerHTML = `
+                <div class="message-content">
+                    <div class="thinking-indicator">
+                        <span>思考中</span>
+                        <div class="thinking-dots">
+                            <div class="thinking-dot"></div>
+                            <div class="thinking-dot"></div>
+                            <div class="thinking-dot"></div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            messages.appendChild(messageDiv);
+            messages.scrollTop = messages.scrollHeight;
+            return messageId;
+        }
+
+        // 移除指定消息
+        function removeMessage(messageId) {
+            const messageElement = document.getElementById(messageId);
+            if (messageElement) {
+                messageElement.remove();
+            }
         }
 
         // 打开创建模态框
