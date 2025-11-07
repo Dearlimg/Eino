@@ -10,30 +10,29 @@ import (
 )
 
 func main() {
-	// 创建上下文
 	ctx := context.Background()
 
-	// 初始化 Ollama ChatModel
-	chatModel, err := ollama.NewChatModel(ctx, &ollama.ChatModelConfig{
-		BaseURL: "http://localhost:11434", // Ollama 服务地址
-		Model:   "deepseek-r1:8b",         // 模型名称，请根据你的实际情况修改
+	// 1. 初始化模型
+	model, err := ollama.NewChatModel(ctx, &ollama.ChatModelConfig{
+		BaseURL: "http://localhost:11434",
+		Model:   "deepseek-r1:8b", // 或其他可用模型
 	})
 	if err != nil {
-		log.Fatalf("初始化 ChatModel 失败: %v", err)
+		log.Fatal(err)
 	}
 
-	// 构建对话消息
+	// 2. 构建消息
 	messages := []*schema.Message{
-		schema.UserMessage(""),
+		schema.SystemMessage("你是一个友好的助手"),
+		schema.UserMessage("你好，介绍一下你自己"),
 	}
 
-	// 生成回复
-	response, err := chatModel.Generate(ctx, messages)
+	// 3. 生成回复
+	response, err := model.Generate(ctx, messages)
 	if err != nil {
-		log.Fatalf("生成回复失败: %v", err)
+		log.Fatal(err)
 	}
 
-	// 输出回复内容
-	fmt.Println("=== Ollama 回复 ===")
+	// 4. 输出结果
 	fmt.Println(response.Content)
 }

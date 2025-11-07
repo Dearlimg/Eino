@@ -1,0 +1,36 @@
+server:
+  address: ":8080"
+  mode: "release"
+
+model:
+  provider: "ollama"
+  base_url: "http://localhost:11434"
+  api_key: ""
+  model: "deepseek-r1:8b"
+  timeout: 60
+
+agent:
+  max_retries: 3
+  timeout: 30
+  max_tokens: 2048
+  temperature: 0.7
+  max_history: 20
+  enable_stream: true
+
+storage:
+  type: "memory"  # memory, mysql, redis
+  mysql:
+    host: "47.118.19.28"
+    port: 3307
+    user: "root"
+    password: ""
+    database: "eino_chatbot"
+  redis:
+    host: "47.118.19.28"
+    port: 6379
+    password: ""
+    db: 0
+  milvus:
+    host: "47.118.19.28"
+    port: 19530
+
